@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>قلب الحب – أحبك بكل لغات العالم</title>
+<style>
+  :root {
+    --bg1: #2a050c;
+    --bg2: #070103;
+    --ink: #ffd9de;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: radial-gradient(ellipse at 50% 45%, var(--bg1) 0%, var(--bg2) 75%);
+    color: var(--ink);
+    font-family: "Segoe UI", "Noto Sans", "Noto Sans Arabic", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .caption {
+    position: fixed; left: 0; right: 0; bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    text-align: center; font-size: 14px; letter-spacing: .3px; opacity: .75; pointer-events: none;
+  }
+  #tip {
+    position: fixed; pointer-events: none; opacity: 0; transition: opacity .15s;
+    background: rgba(20, 2, 6, .88); border: 1px solid rgba(255, 90, 110, .55);
+    padding: 6px 12px; border-radius: 10px; font-size: 14px; white-space: nowrap;
+    box-shadow: 0 4px 18px rgba(255, 30, 60, .35);
+  }
+  #tip b { color: #ff9aa8; font-weight: 600; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="caption" id="caption"></div>
+<div id="tip"></div>
+
+<script>
+// ───────── "أحبك" بلغات مختلفة (كل لغة مرة واحدة فقط) ─────────
+const RAW_LIST = [
+"أحبك|العربية","I love you|الإنجليزية","Je t'aime|الفرنسية","Te quiero|الإسبانية","Ich liebe dich|الألمانية",
+"Ti amo|الإيطالية","Eu te amo|البرتغالية","Ik hou van je|الهولندية","Я тебя люблю|الروسية","我爱你|الصينية",
+"愛してる|اليابانية","사랑해|الكورية","मैं तुमसे प्यार करता हूँ|الهندية","Seni seviyorum|التركية","دوستت دارم|الفارسية",
+"אני אוהב אותך|العبرية","Σ'αγαπώ|اليونانية","Jag älskar dig|السويدية","Jeg elsker deg|النرويجية","Jeg elsker dig|الدنماركية",
+"Minä rakastan sinua|الفنلندية","Kocham cię|البولندية","Miluji tě|التشيكية","Szeretlek|المجرية","Te iubesc|الرومانية",
+"Я тебе кохаю|الأوكرانية","Обичам те|البلغارية","Volim te|الكرواتية","Волим те|الصربية","Ľúbim ťa|السلوفاكية",
+"Ljubim te|السلوفينية","Aš tave myliu|الليتوانية","Es tevi mīlu|اللاتفية","Ma armastan sind|الإستونية","Ég elska þig|الآيسلندية",
+"Mo nifẹ rẹ|اليوروبا","Ndinokuda|الشونا","Nakupenda|السواحلية","Ek is lief vir jou|الأفريكانية","Anh yêu em|الفيتنامية",
+"Aku cinta kamu|الإندونيسية","Saya cintakan awak|الماليزية","Mahal kita|التاغالوغ","ฉันรักเธอ|التايلاندية","ខ្ញុំស្រលាញ់អ្នក|الخميرية",
+"ຂ້ອຍຮັກເຈົ້າ|اللاوية","ငါမင်းကိုချစ်တယ်|البورمية","আমি তোমাকে ভালোবাসি|البنغالية","میں تم سے پیار کرتا ہوں|الأردية","நான் உன்னை காதலிக்கிறேன்|التاميلية",
+"నేను నిన్ను ప్రేమిస్తున్నాను|التيلوغوية","ನಾನು ನಿನ್ನನ್ನು ಪ್ರೀತಿಸುತ್ತೇನೆ|الكانادا","ഞാൻ നിന്നെ സ്നേഹിക്കുന്നു|المالايالامية","मी तुझ्यावर प्रेम करतो|الماراثية","હું તને પ્રેમ કરું છું|الغوجاراتية",
+"ਮੈਂ ਤੈਨੂੰ ਪਿਆਰ ਕਰਦਾ ਹਾਂ|البنجابية","මම ඔබට ආදරෙයි|السنهالية","म तिमीलाई माया गर्छु|النيبالية","زه تا سره مینه کوم|البشتو","Ez te hez dikim|الكردية",
+"Ես քեզ սիրում եմ|الأرمنية","მიყვარხარ|الجورجية","Səni sevirəm|الأذربيجانية","Мен сені сүйемін|الكازاخية","Seni sevaman|الأوزبكية",
+"Men seni söýýärin|التركمانية","Мен сени сүйөм|القيرغيزية","Ман туро дӯст медорам|الطاجيكية","Би чамд хайртай|المنغولية","ངས་ཁྱེད་ལ་དགའ་པོ་ཡོད།|التبتية",
+"مەن سېنى سۆيىمەن|الأويغورية","Të dua|الألبانية","Те сакам|المقدونية","Inħobbok|المالطية","Tá grá agam duit|الأيرلندية",
+"Tha gaol agam ort|الغيلية الاسكتلندية","Dwi'n dy garu di|الويلزية","Da garout a ran|البريتونية","Maite zaitut|الباسكية","T'estimo|الكتالونية",
+"Quérote|الغاليسية","T'aimi|الأوكسيتانية","Ti tengu caru|الكورسيكية","Ech hunn dech gär|اللوكسمبورغية","Ik hâld fan dy|الفريزية",
+"Eg elski teg|الفاروية","Te amo|اللاتينية","Mi amas vin|الإسبرانتو","Я цябе кахаю|البيلاروسية","Aloha au iā ʻoe|الهاوايية",
+"Aroha ana ahau ki a koe|الماورية","ʻOu te alofa ia te oe|الساموية","ʻOku ou ʻofa ʻia koe|التونغية","Au domoni iko|الفيجية","Tiako ianao|الملغاشية",
+"Ngiyakuthanda|الزولو","Ndiyakuthanda|الخوسا","Kea u rata|السوتو","Ke a go rata|التسوانا","Ahụrụ m gị n'anya|الإيغبو",
+"Ina son ka|الهوسا","እወድሻለሁ|الأمهرية","Waan ku jeclahay|الصومالية","ኣፍቅረካ ኣሎኹ|التغرينية","Dama la bëgg|الولوف",
+"Ndagukunda|الكينيارواندا","Nalingi yo|اللينغالا","Ndimakukonda|التشيتشيوا","איך האב דיך ליב|اليديشية","Mwen renmen ou|الكريولية الهايتية",
+"Munayki|الكيتشوا","Rohayhu|الغواراني","Nimitztlazohtla|النواتل","Góa ài lí|الهوكيين","مان توسان پيار ڪريان ٿو|السندية",
+"মই তোমাক ভাল পাওঁ|الآسامية","ମୁଁ ତୁମକୁ ଭଲ ପାଏ|الأوديا","Hanv tuka mog korta|الكونكانية","Aku tresna karo kowe|الجاوية","Abdi bogoh ka anjeun|السوندانية",
+"Gihigugma tika|السيبوانية","Ay-ayatenka|الإيلوكانو","Hau hadomi o|التيتومية","Mi laikim yu|التوك بيسين","Hu guaiya hao|التشامورو",
+"Kuv hlub koj|الهمونغ","Jau t'ames|الرومانشية","Ti vogghiu beni|الصقلية","Te voglio bene|النابولية","My a'th kar|الكورنية",
+"Ta graih aym ort|المانكس","qamuSHa'|الكلينغونية","अहं त्वां प्रेम करोमि|السنسكريتية","हम तोहसे प्यार करेनी|البهوجبوري","Мин сине яратам|التتارية",
+"Мин һине яратам|الباشكيرية","Мин эйигин таптыыбын|الساخا","Mun ráhkistan du|السامية الشمالية","Asavakkit|الغرينلاندية","Ayóó ánííníshní|النافاجو",
+"Mi stima bo|البابيامينتو","Ua here vau ia oe|التاهيتية",
+// ── لغات إضافية ──
+"Si jaaladha|الأورومية","Nkwagala|الغاندا","N b'i fɛ|البامبارا","Mi yiɗi ma|الفولانية","Me dɔ wo|التوي (الأكان)",
+"Melɔ̃ wò|الإيوي","Mbi ye mo|السانغو","Ngiyakutsandza|السواتي","Ndza ku rhandza|التسونغا","Mo kontan twa|الكريولية الموريشية",
+"Mi lavem yu|البيسلاما","Ka hmangaih che|الميزو","Seni sevem|التتارية القرمية","Lubju će|السوربية العليا","Kamav tut|الرومانية الغجرية",
+"A luve ye|السكوتس","Mi love yuh|الباتوا الجامايكية","Mi lobi yu|السرانان","Ik hebb di leev|الألمانية السفلى","Quiérote|الأسترية",
+"Ti vuei ben|الفريولية","Te voio ben|الفينيسية","Kisâkihitin|الكري","Ӕз дӕ уарзын|الأوسيتية","Eg elskar deg|النرويجية (نينورسك)",
+"mi olin e sina|توكي بونا","Ek elska þik|النوردية القديمة","हम अहाँ सँ प्रेम करैत छी|المايثيلية","Palangga ta ka|الهيليغاينون","Kaluguran daka|الكابامبانغان",
+"Inaru taka|البانغاسينان","Namumutan ta ka|البيكول"
+];
+
+// حارس ضد التكرار: لغة واحدة ونص واحد فقط
+const RAW = (() => {
+  const seenLang = new Set(), seenText = new Set(), out = [];
+  for (const s of RAW_LIST) {
+    const [t, l] = s.split("|");
+    if (seenLang.has(l) || seenText.has(t)) continue;
+    seenLang.add(l); seenText.add(t); out.push({ t, l });
+  }
+  return out;
+})();
+
+document.getElementById("caption").textContent =
+  `قلب مبني من «أحبك» بـ ${RAW.length} لغة مختلفة — مرّر على أي كلمة لتعرف لغتها ❤️`;
+
+// ───────── إعداد اللوحة ─────────
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+const tip = document.getElementById("tip");
+let W = 0, H = 0, dpr = 1, words = [], fs = 12, S = 1, CX = 0, CY = 0;
+let hovered = null;
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const fontStr = (px, wt = 600) => `${wt} ${px}px "Segoe UI","Noto Sans","Noto Sans Arabic",system-ui,sans-serif`;
+
+// معادلة القلب: داخل القلب عندما تكون القيمة ≤ 0
+const inHeart = (x, y) => Math.pow(x * x + y * y - 1, 3) - x * x * y * y * y <= 0;
+
+// يحسب مقاطع الصفوف (قد يكون للصف مقطعان عند الفصّين العلويين)
+function getSegments(size) {
+  const rowH = size * 1.3, segs = [];
+  for (let py = CY - 1.2 * S; py <= CY + 1.15 * S; py += rowH) {
+    const y = (CY - py) / S + 0.12;
+    let start = null;
+    const push = (a, b) => {
+      const xa = CX + a * S + size * 0.35, xb = CX + b * S - size * 0.35;
+      if (xb - xa >= size * 2.5) segs.push({ xa, xb, py, width: xb - xa });
+    };
+    for (let x = -1.35; x <= 1.35; x += 0.004) {
+      const ins = inHeart(x, y);
+      if (ins && start === null) start = x;
+      if (!ins && start !== null) { push(start, x); start = null; }
+    }
+    if (start !== null) push(start, 1.35);
+  }
+  return segs;
+}
+
+const OCCUPANCY = 0.84; // نسبة امتلاء السطر بالكلمات (الباقي مسافات)
+
+function measureAll(size) {
+  ctx.font = fontStr(size);
+  return RAW.map(o => ({ ...o, w: ctx.measureText(o.t).width }));
+}
+
+// أكبر حجم خط تتسع فيه كل اللغات داخل القلب
+function chooseSize() {
+  const maxFs = 22, minFs = 5;
+  for (let size = maxFs; size >= minFs; size -= 0.25) {
+    const segs = getSegments(size);
+    const totalSeg = segs.reduce((a, s) => a + s.width, 0);
+    const totalW = measureAll(size).reduce((a, o) => a + o.w, 0);
+    if (totalW / totalSeg <= OCCUPANCY) return size;
+  }
+  return minFs;
+}
+
+function build() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.textBaseline = "middle";
+
+  S = Math.min(W / 2.75, H / 2.85);
+  CX = W / 2; CY = H / 2 - 4;
+  fs = chooseSize();
+
+  const segs = getSegments(fs);
+  const remaining = shuffle(measureAll(fs));
+  const totalSeg = segs.reduce((a, s) => a + s.width, 0);
+  const totalW = remaining.reduce((a, o) => a + o.w, 0);
+  const ratio = Math.min(1, totalW / totalSeg);
+  const minGap = fs * 0.7;
+
+  // توزيع الكلمات على الأسطر بنسبة عرض كل سطر، كل لغة مرة واحدة
+  const rows = []; let cum = 0, tgt = 0;
+  for (const sg of segs) {
+    tgt += sg.width * ratio;
+    const row = { sg, items: [], used: 0, sumW: 0 };
+    for (let i = 0; i < remaining.length && cum < tgt; ) {
+      const o = remaining[i];
+      const need = row.items.length ? row.used + minGap + o.w : o.w;
+      if (need <= sg.width) {
+        row.items.push(o); row.used = need; row.sumW += o.w; cum += o.w;
+        remaining.splice(i, 1);
+      } else i++;
+    }
+    rows.push(row);
+  }
+  // أي كلمة متبقية توضع في أول سطر فيه مكان لها
+  for (const o of remaining.splice(0)) {
+    const row = rows.find(r => (r.items.length ? r.used + minGap + o.w : o.w) <= r.sg.width);
+    if (row) { row.used = row.items.length ? row.used + minGap + o.w : o.w; row.sumW += o.w; row.items.push(o); }
+  }
+
+  words = [];
+  for (const row of rows) {
+    const n = row.items.length;
+    if (!n) continue;
+    const { xa, width, py } = row.sg;
+    let gap = n > 1 ? (width - row.sumW) / (n - 1) : 0;
+    gap = Math.min(gap, fs * 2.2);
+    const total = row.sumW + gap * (n - 1);
+    let x = xa + (width - total) / 2;
+    for (const o of row.items) {
+      const mx = x + o.w / 2;
+      const d = clamp(Math.hypot((mx - CX) / (1.15 * S), (py - CY) / (1.2 * S)), 0, 1);
+      const diag = ((CX - mx) / (1.2 * S)) * 0.5 + ((CY - py) / (1.2 * S)) * 0.5;
+      const v = clamp(0.55 - 0.35 * d + 0.28 * diag + Math.random() * 0.45, 0, 1);
+      words.push({
+        t: o.t, l: o.l, x, y: py, w: o.w, d,
+        hue: (Math.random() * 16 - 7 + 360) % 360,
+        sat: 80 + Math.random() * 20,
+        light: 24 + v * 40,
+        ph: Math.random() * 6.28
+      });
+      x += o.w + gap;
+    }
+  }
+}
+
+// ───────── الرسم والحركة ─────────
+function beat(t) {
+  const p = (t % 1.3) / 1.3;
+  const g = c => Math.exp(-Math.pow((p - c) * 11, 2));
+  return 1 + 0.035 * (g(0.1) + 0.7 * g(0.3));
+}
+
+function frame(ms) {
+  const t = ms / 1000;
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  const k = beat(t);
+  ctx.translate(CX, CY); ctx.scale(k, k); ctx.translate(-CX, -CY);
+
+  ctx.font = fontStr(fs);
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+
+  for (const w of words) {
+    if (w === hovered) continue;
+    // موجة لمعان تنتشر من مركز القلب
+    const l = w.light + 9 * Math.sin(t * 2.2 - w.d * 6 + w.ph * 0.35);
+    ctx.fillStyle = `hsl(${w.hue},${w.sat}%,${clamp(l, 14, 72)}%)`;
+    ctx.fillText(w.t, w.x, w.y);
+  }
+  if (hovered) {
+    ctx.font = fontStr(Math.max(fs * 1.5, 13), 700);
+    ctx.shadowColor = "rgba(255,80,110,.95)"; ctx.shadowBlur = 16;
+    ctx.fillStyle = "#fff1f3";
+    ctx.textAlign = "center";
+    ctx.fillText(hovered.t, hovered.x + hovered.w / 2, hovered.y);
+    ctx.textAlign = "left"; ctx.shadowBlur = 0;
+  }
+  ctx.restore();
+  requestAnimationFrame(frame);
+}
+
+// ───────── التفاعل ─────────
+function hit(px, py) {
+  const tolY = Math.max(fs * 0.7, 8);
+  let best = null, bd = 1e9;
+  for (const w of words) {
+    if (py < w.y - tolY || py > w.y + tolY) continue;
+    if (px < w.x - 4 || px > w.x + w.w + 4) continue;
+    const d = Math.abs(px - (w.x + w.w / 2)) + Math.abs(py - w.y);
+    if (d < bd) { bd = d; best = w; }
+  }
+  return best;
+}
+function onMove(e) {
+  hovered = hit(e.clientX, e.clientY);
+  if (hovered) {
+    tip.innerHTML = `${hovered.t} <b>— ${hovered.l}</b>`;
+    tip.style.left = clamp(e.clientX + 14, 8, W - 240) + "px";
+    tip.style.top = clamp(e.clientY - 48, 8, H - 40) + "px";
+    tip.style.opacity = 1;
+  } else tip.style.opacity = 0;
+}
+function onLeave() { hovered = null; tip.style.opacity = 0; }
+window.addEventListener("pointermove", onMove);
+window.addEventListener("pointerdown", onMove);
+document.addEventListener("pointerleave", onLeave);
+document.addEventListener("pointerup", e => { if (e.pointerType === "touch") setTimeout(onLeave, 1200); });
+
+let rt;
+window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(build, 150); });
+
+build();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
